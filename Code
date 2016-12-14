@@ -1,0 +1,144 @@
+
+#include <Servo.h>    // lägger till servo biblioteket
+
+Servo servoLeft;                      // Declare left and right servos
+Servo servoRight;
+
+
+byte wLeftOld;
+byte wRightOld;
+byte counter;
+
+void goToInfinity() {
+  servoLeft.writeMicroseconds(1300);
+  servoRight.writeMicroseconds(1700);
+  delay(20);
+}
+
+
+void stopAll() {
+  servoLeft.detach();
+  servoRight.detach(); 
+}
+
+
+void goForward(int sec){
+  servoLeft.writeMicroseconds(1000);
+  servoRight.writeMicroseconds(2000);
+  delay(sec);
+  
+}
+
+
+void goBack(int sec){
+  servoLeft.writeMicroseconds(1700);
+  servoRight.writeMicroseconds(1300);
+  delay(sec); 
+}
+
+
+void goRight(int sec){
+  servoLeft.writeMicroseconds(1700);
+  servoRight.writeMicroseconds(1700);
+  delay(sec);
+}
+
+
+void goLeft(int sec){ 
+  servoLeft.writeMicroseconds(1300);
+  servoRight.writeMicroseconds(1300);
+  delay(sec);
+}
+ 
+
+void setup() {
+  servoLeft.attach(13);               // Attach left signal to pin 13 
+  servoRight.attach(12);  
+
+   wLeftOld = 0;
+   wRightOld = 1;
+   counter = 0;
+
+  pinMode(7, INPUT);
+  pinMode(5, INPUT);
+  pinMode(10, INPUT); pinMode(9, OUTPUT); // LEFT OBJECT
+  pinMode(3, INPUT); pinMode(2, INPUT); // RIGHT OBJECT
+
+  Serial.begin(9600);
+}
+
+float volts(int adPin) {
+  return float(analogRead(adPin)) * 5.0 / 1024.0;
+}
+
+int irDetect(int irLedPin,int irReceiverPin,long frequency) {
+  tone(irLedPin, frequency, 8);
+  delay(1);
+  int ir = digitalRead(irReceiverPin);
+  delay(1);
+  return ir;
+  
+}
+
+void loop() {
+  /*
+   * REGULAR = 11;
+   * RIGHT = 10
+   * LEFT = 01
+   * BOTH = 00
+   */
+
+   byte wLeft = digitalRead(5); 
+   byte wRight = digitalRead(7);
+
+
+   //Object detection code
+   int irLeft = irDetect(9, 10, 41000);
+   int irRight = irDetect(2, 3, 41000);
+   if (irLeft == 0) {
+     goRight(100);
+   } else if (irRight == 0) {
+    goLeft(100);
+   }
+   
+   //light code
+ if (volts(A3) < 0.05) {
+  goBack(1000);
+  goRight(1000);
+  
+
+}
+
+   //cornerd code
+  if (wLeft != wRight) {
+    if ((wLeft != wLeftOld) && (wRight != wRightOld)) {
+      counter++;
+      wLeftOld = wLeft;
+      wRightOld = wRight;
+      if (counter == 4) {
+        wLeft = 0;
+        wRight = 0;
+        counter = 0;
+          }
+        } else {
+          counter = 0;
+      }
+    }
+
+
+  //going into a wall code
+  if ((wLeft == 0) && (wRight == 0)) {
+
+    goBack(1000);
+    goLeft(520);
+   } else if(wLeft == 0) {
+    goBack(1000);
+    goRight(200);
+   } else if (wRight == 0) {
+    goBack(1000);
+    goLeft(200);
+   } else {
+    goToInfinity();
+   }
+
+}
